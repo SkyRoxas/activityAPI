@@ -17,7 +17,7 @@
     },
     dest: {
       js: './dest/js',
-      sass: './dest/css/style',
+      sass: './dest/css',
       html: './dest/',
       image: './dest/'
     }

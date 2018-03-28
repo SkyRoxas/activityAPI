@@ -11,29 +11,50 @@ class ActivitySDK {
   static getInfo() {
     let {rootAPI, eventId} = this
     return axios.get(`${rootAPI}/EventAction/getEventSettings?eventId=${eventId}`).then(res => {
+      let {poolList} = res.data.data
+      poolList.map((item) => {
+        this.addPoolListItemProps(item)
+      })
       return res.data
     })
   }
 
+  static addPoolListItemProps(poolListItem) {
+
+    const activity = this
+
+    poolListItem.verification = function() {
+      return activity.verification(poolListItem)
+        .then(res=>{
+          return res
+        })
+    }
+
+    poolListItem.getPrize = function() {
+      return '得到抽獎結果'
+    }
+  }
+
   // verification
-  static verification() {
+  static verification(poolListItem) {
     return Promise.all([
        this.isActive(),
-       this.isLogin()
+       this.isLogin(),
+       this.isSurplusDraws(poolListItem)
      ])
     .then(res => {
       for(let item in res){
-        if (res[item].state === undefined || res[item].message === undefined) {
-          console.error('error: not find "state" or "message" props for Promise.all(array) in verification function')
+        if (res[item].state === undefined || res[item].errorMsg === undefined) {
+          console.error('error: not find "state" or "errorMsg" props for Promise.all(array) in verification function')
           return
         }
       }
       for(let item in res){
         if (!res[item].state) {
-          return {state: false, message: res[item].message}
+          return {state: false, errorMsg: res[item].errorMsg}
         }
       }
-      return {state: true, message: '驗證成功'}
+      return {state: true, errorMsg: '驗證成功'}
     })
   }
   static isLogin() {
@@ -44,12 +65,12 @@ class ActivitySDK {
     if(this.DDIM_EC_ID) {
       isLogin = {
         state: true,
-        message: '使用者未登入'
+        errorMsg: '使用者未登入'
       }
     } else {
       isLogin = {
         state: Boolean(getCookie(userCookie)),
-        message: '使用者未登入'
+        errorMsg: '使用者未登入'
       }
     }
     return Promise.resolve(isLogin)
@@ -62,10 +83,21 @@ class ActivitySDK {
       .then(res => {
         let isEventActive = {
           state: res.data,
-          message: '活動已結束'
+          errorMsg: '活動已結束'
         }
         return isEventActive
       })
+  }
+  static isSurplusDraws(poolListItem) {
+    let number = 0
+    let isSurplusDraws = true
+    console.log(poolListItem)
+    if(!number > 0) { isSurplusDraws = false
+    }
+    return {
+      state: isSurplusDraws,
+      errorMsg: '抽獎次數以達到上限'
+    }
   }
 
   // cookie
